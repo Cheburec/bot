@@ -8,11 +8,11 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.client.default import DefaultBotProperties
 
-BOT_TOKEN = '8432535237:AAG4S7wyvrOMQe-GpGxXSBhozy10jxkWTEo'
+BOT_TOKEN = 'ТОКЕН_ТВОЕГО_БОТА'
 
 # ID группы и темы форума
 PARTY_GROUP_ID = -1002855678816
-TOPIC_ID = 45  # открытая тема форума
+TOPIC_ID = 45  # ID темы форума
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 dp = Dispatcher(storage=MemoryStorage())
@@ -121,7 +121,7 @@ async def set_mmr(message: types.Message, state: FSMContext):
         await message.answer("MMR должен быть числом.")
         return
     await state.update_data(mmr=int(message.text))
-    await message.answer("Введите свой Dota ID (число)(Можно найти нажав на свой ник на главном экране в Dota2):")
+    await message.answer("Введите свой Dota ID (число):")
     await state.set_state(ProfileForm.dota_id)
 
 @dp.message(ProfileForm.dota_id)
@@ -166,7 +166,7 @@ async def set_honesty(message: types.Message, state: FSMContext):
     await message.answer(format_profile(profile), reply_markup=profile_menu())
     await state.clear()
 
-# ---------- /профиль ----------
+# ---------- ПОКАЗ ПРОФИЛЯ ----------
 @dp.message(Command("профиль"))
 async def show_profile(message: types.Message):
     profiles = load_profiles()
@@ -194,26 +194,52 @@ async def bottom_menu_handler(message: types.Message):
             await message.answer("😕 Профиль не найден. Создай его через /start.")
             return
 
-        try:
-            sent_message = await bot.send_message(
-                chat_id=PARTY_GROUP_ID,
-                message_thread_id=TOPIC_ID,
-                text=f"🔔 Новый игрок ищет пати!\n\n{format_profile(profile)}",
-                parse_mode="HTML"
-            )
+        # Добавляем кнопку удаления
+        delete_button = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="🗑 Удалить анкету", callback_data=f"delete_{profile['user_id']}")]
+            ]
+        )
 
-            # Ссылка на сообщение (работает для участников группы)
-            message_link = f"https://t.me/c/{str(PARTY_GROUP_ID)[4:]}/{sent_message.message_id}"
+        sent_message = await bot.send_message(
+            chat_id=PARTY_GROUP_ID,
+            message_thread_id=TOPIC_ID,
+            text=f"🔔 Новый игрок ищет пати!\n\n{format_profile(profile)}",
+            reply_markup=delete_button
+        )
 
-            await message.answer(
-                f"✅ Ваш профиль опубликован в теме форума!\n"
-                f"Ссылка на сообщение: {message_link}"
-            )
+        # Сохраняем ID сообщения для возможности удаления
+        profile["post_message_id"] = sent_message.message_id
+        save_profiles(profiles)
 
-        except Exception as e:
-            await message.answer(f"❌ Не удалось отправить профиль: {e}")
+        message_link = f"https://t.me/c/{str(PARTY_GROUP_ID)[4:]}/{sent_message.message_id}"
+        await message.answer(f"✅ Ваша анкета опубликована!\n🔗 {message_link}")
 
-# ---------- INLINE КНОПКИ ----------
+# ---------- УДАЛЕНИЕ АНКЕТЫ ----------
+@dp.callback_query(lambda c: c.data.startswith("delete_"))
+async def delete_profile_post(callback: types.CallbackQuery):
+    user_id_in_callback = int(callback.data.split("_")[1])
+    user_id = callback.from_user.id
+
+    if user_id != user_id_in_callback:
+        await callback.answer("⛔ Это не ваша анкета!", show_alert=True)
+        return
+
+    profiles = load_profiles()
+    profile = next((p for p in profiles if p["user_id"] == user_id), None)
+    if not profile or "post_message_id" not in profile:
+        await callback.answer("⚠️ Анкета не найдена или уже удалена.", show_alert=True)
+        return
+
+    try:
+        await bot.delete_message(chat_id=PARTY_GROUP_ID, message_id=profile["post_message_id"])
+        profile.pop("post_message_id", None)
+        save_profiles(profiles)
+        await callback.message.answer("🗑 Ваша анкета удалена из чата.")
+    except Exception as e:
+        await callback.message.answer(f"❌ Ошибка при удалении: {e}")
+
+# ---------- INLINE ----------
 @dp.callback_query(lambda c: c.data == "clear_profile")
 async def clear_profile(callback: types.CallbackQuery):
     profiles = load_profiles()
