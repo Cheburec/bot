@@ -8,7 +8,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.client.default import DefaultBotProperties
 
-BOT_TOKEN = 'ТОКЕН_ТВОЕГО_БОТА'
+BOT_TOKEN = '8432535237:AAG4S7wyvrOMQe-GpGxXSBhozy10jxkWTEo'
 
 # ID группы и темы форума
 PARTY_GROUP_ID = -1002855678816
@@ -260,3 +260,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
