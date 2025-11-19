@@ -13,7 +13,7 @@ BOT_TOKEN = '8512394178:AAHvqYr-aitTLydXB4x6F50-XQQ7yLRk0f8'
 
 GAME_MODE = "Название режима"
 GAME_MAP = "Название карты"
-CHAT_LINK = "https://t.me/+bRzRm8Og3aYxNDRi м кеы"
+CHAT_LINK = "https://t.me/+bRzRm8Og3aYxNDRi"
 
 # чат + топик, куда отправлять профиль игрока
 PARTY_GROUP_ID = -1002855678816
@@ -135,4 +135,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
